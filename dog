@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
+  <meta name="monetag" content="cc58be4cd56ff2000949ebb2f4c9fa45">
   <title>Juego del Perro Saltarín</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
@@ -197,9 +198,8 @@
     }
   </script>
 
-  <!-- 🧲 Pega aquí tu script de Monetag -->
-  <!-- Ejemplo: -->
-  <!-- <script data-cfasync="false" type="text/javascript" src="https://YOUR_MONETAG_SCRIPT.js"></script> -->
+  <!-- Monetag script -->
+  <script type="text/javascript" src="https://cdn.monetag.com/monetag.js" async></script>
 
 </body>
 </html>
