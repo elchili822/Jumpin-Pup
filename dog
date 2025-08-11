@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Juego del Perro Saltarín</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #d0f0f4;
+      font-family: Arial, sans-serif;
+      touch-action: manipulation;
+    }
+    .game {
+      width: 800px;
+      height: 200px;
+      background: #fff;
+      border: 3px solid #444;
+      margin: 50px auto;
+      position: relative;
+      overflow: hidden;
+    }
+    .perro {
+      width: 50px;
+      height: 50px;
+      background: url('https://twemoji.maxcdn.com/v/latest/72x72/1f415.png') no-repeat center/contain;
+      transform: scaleX(-1);
+      position: absolute;
+      bottom: 0;
+      left: 50px;
+      transition: transform 0.1s;
+    }
+    .obstacle {
+      width: 25px;
+      height: 50px;
+      background: green;
+      position: absolute;
+      bottom: 0;
+      right: -50px;
+      animation-name: moveObstacle;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+      animation-duration: 2s;
+    }
+    @keyframes moveObstacle {
+      0% { right: -50px; }
+      100% { right: 850px; }
+    }
+    .jump {
+      animation: jump 0.7s ease-out;
+    }
+    @keyframes jump {
+      0% { bottom: 0; transform: scaleX(-1) rotate(0deg); }
+      50% { bottom: 130px; transform: scaleX(-1) rotate(-20deg); }
+      100% { bottom: 0; transform: scaleX(-1) rotate(0deg); }
+    }
+    #score {
+      text-align: center;
+      font-size: 22px;
+      margin-top: 20px;
+    }
+    .game-over {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    .game-over-content {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+    }
+    .game-over-content h2 {
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+    .game-over-content button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+    }
+    .retry { background-color: #4caf50; color: white; }
+    .exit { background-color: #f44336; color: white; }
+  </style>
+</head>
+<body>
+
+  <div class="game" id="game">
+    <div class="perro" id="perro"></div>
+    <div class="obstacle" id="obstacle"></div>
+  </div>
+  <div id="score">Puntuación: 0</div>
+
+  <div class="game-over" id="gameOverScreen">
+    <div class="game-over-content">
+      <h2>🐶 ¡Perdiste!</h2>
+      <p>Tu puntuación fue: <span id="finalScore">0</span></p>
+      <button class="retry" onclick="reiniciarJuego()">Reintentar</button>
+      <button class="exit" onclick="salirDelJuego()">Salir</button>
+    </div>
+  </div>
+
+  <script>
+    const perro = document.getElementById("perro");
+    const obstacle = document.getElementById("obstacle");
+    const scoreDisplay = document.getElementById("score");
+    const gameOverScreen = document.getElementById("gameOverScreen");
+    const finalScore = document.getElementById("finalScore");
+
+    let score = 0;
+    let gameOver = false;
+    const initialDuration = 2;
+    const minDuration = 0.5;
+    const speedIncreaseFactor = 0.001;
+
+    function saltar() {
+      if (gameOver) return;
+      if (!perro.classList.contains("jump")) {
+        perro.classList.add("jump");
+        setTimeout(() => perro.classList.remove("jump"), 700);
+      }
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space" || e.code === "ArrowUp") saltar();
+    });
+
+    document.addEventListener("touchstart", () => saltar());
+
+    function beep() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(1000, ctx.currentTime);
+      gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      oscillator.start();
+      oscillator.stop(ctx.currentTime + 0.15);
+    }
+
+    const collisionInterval = setInterval(() => {
+      if (gameOver) return;
+      const perroBottom = parseInt(window.getComputedStyle(perro).getPropertyValue("bottom"));
+      const obstacleRight = parseInt(window.getComputedStyle(obstacle).getPropertyValue("right"));
+      const obstacleLeft = 800 - obstacleRight;
+      const perroLeft = 50;
+      const perroRight = perroLeft + 50;
+
+      if (
+        obstacleLeft < perroRight &&
+        obstacleLeft + 25 > perroLeft &&
+        perroBottom < 50
+      ) {
+        gameOver = true;
+        obstacle.style.animationPlayState = "paused";
+        finalScore.textContent = score;
+        gameOverScreen.style.display = "flex";
+      }
+    }, 10);
+
+    const scoreInterval = setInterval(() => {
+      if (!gameOver) {
+        score++;
+        scoreDisplay.innerText = "Puntuación: " + score;
+
+        let newDuration = initialDuration - score * speedIncreaseFactor;
+        if (newDuration < minDuration) newDuration = minDuration;
+        obstacle.style.animationDuration = newDuration + "s";
+
+        if (score % 100 === 0) beep();
+      }
+    }, 200);
+
+    function reiniciarJuego() {
+      location.reload();
+    }
+
+    function salirDelJuego() {
+      window.open('', '_self');
+      window.close();
+      setTimeout(() => {
+        if (!window.closed) {
+          alert("No se puede cerrar esta pestaña automáticamente.\nCiérrala manualmente.");
+        }
+      }, 300);
+    }
+  </script>
+
+  <!-- 🧲 Pega aquí tu script de Monetag -->
+  <!-- Ejemplo: -->
+  <!-- <script data-cfasync="false" type="text/javascript" src="https://YOUR_MONETAG_SCRIPT.js"></script> -->
+
+</body>
+</html>
